@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import {
   BiRegularCheckCircle,
   BiRegularHash,
@@ -79,15 +80,23 @@ export const ServerSidebar = (props: Props) => {
   const navigate = useNavigate();
   const keybinds = useKeybindActions();
 
+  const [categoryStates, setCategoryStates] = createSignal(
+    props.server.orderedChannels.map(() => true)
+  );
+
+  const toggleCategory = (index: number) => {
+    setCategoryStates((prev) => {
+      const newState = [...prev];
+      newState[index] = !newState[index];
+      return newState;
+    });
+  };
+
   // TODO: this does not filter visible channels at the moment because the state for categories is not stored anywhere
   /** Gets a list of channels that are currently not hidden inside a closed category */
   const visibleChannels = () =>
     props.server.orderedChannels.flatMap((category) => category.channels);
 
-  // TODO: when navigating channels, we want to add aria-keyshortcuts={localized-shortcut} to the next/previous channels
-  // https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Attributes/aria-keyshortcuts
-  // TODO: issue warning if nothing is found somehow? warnings can be nicer than flat out not working
-  // TODO: we want it to feel smooth when navigating through channels, so we'll want to select channels immediately but not actually navigate until we're done moving through them
   /** Navigates to the channel offset from the current one, wrapping around if needed */
   const navigateChannel = (byOffset: number) => {
     if (props.channelId == null) {
@@ -100,7 +109,6 @@ export const ServerSidebar = (props: Props) => {
       (channel) => channel.id === props.channelId,
     );
 
-    // this will wrap the index around
     const nextChannel = channels.at(
       (currentChannelIndex + byOffset) % channels.length,
     );
@@ -172,11 +180,13 @@ export const ServerSidebar = (props: Props) => {
         <List gap="lg">
           <div />
           <For each={props.server.orderedChannels}>
-            {(category) => (
+            {(category, index) => (
               <Category
                 category={category}
                 channelId={props.channelId}
                 menuGenerator={props.menuGenerator}
+                shown={categoryStates()[index()]}
+                toggleCategory={() => toggleCategory(index())}
               />
             )}
           </For>
@@ -208,18 +218,12 @@ function ServerInfo(
   );
 }
 
-/**
- * Server name
- */
 const ServerName = styled("a", {
   base: {
     flexGrow: 1,
   },
 });
 
-/**
- * Settings link
- */
 const SettingsLink = styled("a", {
   base: {
     cursor: "pointer",
@@ -230,9 +234,6 @@ const SettingsLink = styled("a", {
   },
 });
 
-/**
- * Server badge
- */
 function ServerBadge(props: { flags: ServerFlags }) {
   const { t } = useLingui();
 
@@ -252,21 +253,19 @@ function ServerBadge(props: { flags: ServerFlags }) {
   );
 }
 
-/**
- * Single category entry
- */
 function Category(
   props: {
     category: CategoryData;
     channelId: string | undefined;
+    shown: boolean;
+    toggleCategory: () => void;
   } & Pick<Props, "menuGenerator">,
 ) {
-  const [shown, setShown] = createSignal(true);
   const channels = createMemo(() =>
     props.category.channels.filter(
       (channel) =>
         props.category.id === "default" ||
-        shown() ||
+        props.shown ||
         channel.unread ||
         channel.id === props.channelId,
     ),
@@ -276,8 +275,8 @@ function Category(
     <Column gap="sm">
       <Show when={props.category.id !== "default"}>
         <CategoryBase
-          open={shown()}
-          onClick={() => setShown((shown) => !shown)}
+          open={props.shown}
+          onClick={props.toggleCategory}
         >
           <MdChevronRight {...iconSize(12)} />
           {props.category.title}
@@ -340,9 +339,6 @@ const CategoryBase = styled("div", {
   },
 });
 
-/**
- * Server channel entry
- */
 function Entry(
   props: { channel: Channel; active: boolean } & Pick<Props, "menuGenerator">,
 ) {
@@ -420,9 +416,6 @@ function Entry(
   );
 }
 
-/**
- * Channel icon styling
- */
 const ChannelIcon = styled("img", {
   base: {
     width: "16px",
@@ -431,10 +424,6 @@ const ChannelIcon = styled("img", {
   },
 });
 
-/**
- * Inner scrollable list
- * We fix the width in order to prevent scrollbar from moving stuff around
- */
 const List = styled(Column, {
   base: {
     width: "var(--layout-width-channel-sidebar)",
