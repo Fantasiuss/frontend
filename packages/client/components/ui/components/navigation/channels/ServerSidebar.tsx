@@ -182,20 +182,18 @@ const [categoryStates, setCategoryStates] = createSignal(
         use:floating={props.menuGenerator(props.server)}
       >
         <List gap="lg">
-          <div />
-          <For each={props.server.orderedChannels}>
+           <div />
+           <For each={props.server.orderedChannels}>
             {(category, index) => (
-              <Category
-                category={category}
-                channelId={props.channelId}
-                menuGenerator={props.menuGenerator}
+               <Category
+                 category={category}
+                 channelId={props.channelId}
+                 menuGenerator={props.menuGenerator}
                 shown={categoryStates()[index()]}
                 toggleCategory={() => toggleCategory(index())}
-              />
-            )}
-          </For>
-          <div />
-        </List>
+               />
+             )}
+           </For>
       </div>
     </SidebarBase>
   );
