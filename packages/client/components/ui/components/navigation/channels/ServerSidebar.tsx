@@ -79,6 +79,18 @@ export const ServerSidebar = (props: Props) => {
   const navigate = useNavigate();
   const keybinds = useKeybindActions();
 
+const [categoryStates, setCategoryStates] = createSignal(
+    props.server.orderedChannels.map(() => true)
+  );
+
+  const toggleCategory = (index: number) => {
+    setCategoryStates((prev) => {
+      const newState = [...prev];
+      newState[index] = !newState[index];
+      return newState;
+    });
+  };
+  
   // TODO: this does not filter visible channels at the moment because the state for categories is not stored anywhere
   /** Gets a list of channels that are currently not hidden inside a closed category */
   const visibleChannels = () =>
@@ -172,11 +184,13 @@ export const ServerSidebar = (props: Props) => {
         <List gap="lg">
           <div />
           <For each={props.server.orderedChannels}>
-            {(category) => (
+            {(category, index) => (
               <Category
                 category={category}
                 channelId={props.channelId}
                 menuGenerator={props.menuGenerator}
+                shown={categoryStates()[index()]}
+                toggleCategory={() => toggleCategory(index())}
               />
             )}
           </For>
@@ -259,6 +273,8 @@ function Category(
   props: {
     category: CategoryData;
     channelId: string | undefined;
+    shown: boolean;
+    toggleCategory: () => void;
   } & Pick<Props, "menuGenerator">,
 ) {
   const [shown, setShown] = createSignal(true);
@@ -266,7 +282,7 @@ function Category(
     props.category.channels.filter(
       (channel) =>
         props.category.id === "default" ||
-        shown() ||
+        props.shown ||
         channel.unread ||
         channel.id === props.channelId,
     ),
@@ -276,8 +292,8 @@ function Category(
     <Column gap="sm">
       <Show when={props.category.id !== "default"}>
         <CategoryBase
-          open={shown()}
-          onClick={() => setShown((shown) => !shown)}
+          open={props.shown}
+          onClick={props.toggleCategory}
         >
           <MdChevronRight {...iconSize(12)} />
           {props.category.title}
